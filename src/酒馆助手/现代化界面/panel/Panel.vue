@@ -1,0 +1,250 @@
+<template>
+  <template v-if="store.should_enable">
+    <div class="inline-drawer modern-layout-panel">
+      <div class="inline-drawer-toggle inline-drawer-header">
+        <b>{{ SCRIPT_NAME }}</b>
+        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+      </div>
+
+      <div class="inline-drawer-content">
+        <label class="checkbox_label modern-layout-checkbox">
+          <input v-model="store.settings.enabled" type="checkbox" class="checkbox" />
+          <span>启用现代化界面</span>
+        </label>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input v-model="store.settings.desktopTwoColumn" type="checkbox" class="checkbox" />
+          <span>宽屏启用两栏与滑出面板</span>
+        </label>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input
+            v-model="store.settings.desktopDockedDrawer"
+            type="checkbox"
+            class="checkbox"
+            :disabled="!store.settings.desktopTwoColumn"
+          />
+          <span>空间足够时使用固定三栏</span>
+        </label>
+        <small class="modern-layout-hint">空间不足、窄屏或手机端会自动恢复滑出面板。</small>
+
+        <label class="modern-layout-field">
+          <span>左侧栏宽度</span>
+          <input
+            :value="store.settings.leftSidebarWidth"
+            class="text_pole"
+            type="number"
+            min="320"
+            max="460"
+            step="4"
+            @change="commitNumericSetting($event, 'leftSidebarWidth', 320, 460)"
+            @blur="commitNumericSetting($event, 'leftSidebarWidth', 320, 460)"
+          />
+        </label>
+
+        <label class="modern-layout-field">
+          <span>滑出面板偏好宽度</span>
+          <input
+            :value="store.settings.overlayPanelWidth"
+            class="text_pole"
+            type="number"
+            min="720"
+            step="20"
+            @change="commitNumericSetting($event, 'overlayPanelWidth', 720)"
+            @blur="commitNumericSetting($event, 'overlayPanelWidth', 720)"
+          />
+        </label>
+
+        <label class="modern-layout-field">
+          <span>主聊天最小宽度</span>
+          <input
+            :value="store.settings.mainChatMaxWidth"
+            class="text_pole"
+            type="number"
+            min="0"
+            step="20"
+            @change="commitNumericSetting($event, 'mainChatMaxWidth', 0)"
+            @blur="commitNumericSetting($event, 'mainChatMaxWidth', 0)"
+          />
+        </label>
+        <small class="modern-layout-hint">跟随酒馆的界面宽度百分比；0 表示始终铺满可用空间。</small>
+
+        <label class="modern-layout-field modern-layout-range-field">
+          <span>输入框底部留白</span>
+          <span class="modern-layout-range-control">
+            <input
+              v-model.number="store.settings.inputBottomGap"
+              type="range"
+              :min="INPUT_BOTTOM_GAP_MIN"
+              :max="INPUT_BOTTOM_GAP_MAX"
+              step="1"
+            />
+            <input
+              :value="store.settings.inputBottomGap"
+              class="text_pole"
+              type="number"
+              :min="INPUT_BOTTOM_GAP_MIN"
+              :max="INPUT_BOTTOM_GAP_MAX"
+              step="1"
+              @change="commitNumericSetting($event, 'inputBottomGap', INPUT_BOTTOM_GAP_MIN, INPUT_BOTTOM_GAP_MAX)"
+              @blur="commitNumericSetting($event, 'inputBottomGap', INPUT_BOTTOM_GAP_MIN, INPUT_BOTTOM_GAP_MAX)"
+            />
+          </span>
+        </label>
+        <small class="modern-layout-hint">调整悬浮输入框与窗口底边的距离，单位为像素。</small>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input v-model="store.settings.reduceMotion" type="checkbox" class="checkbox" />
+          <span>减弱动态效果</span>
+        </label>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input v-model="store.settings.reduceAdvancedEffects" type="checkbox" class="checkbox" />
+          <span>减少高级美化</span>
+        </label>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input v-model="store.settings.modernWorldInfoEditor" type="checkbox" class="checkbox" />
+          <span>启用现代世界书管理界面</span>
+        </label>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input
+            v-model="store.settings.modernWorldSelect"
+            type="checkbox"
+            class="checkbox"
+            :disabled="!store.settings.modernWorldInfoEditor"
+          />
+          <span>使用现代世界书选择器</span>
+        </label>
+        <small class="modern-layout-hint">统一应用于宽屏、窄屏和手机；也可在世界书界面直接切换。</small>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input v-model="store.settings.modernCharacterManagement" type="checkbox" class="checkbox" />
+          <span>启用现代角色管理界面</span>
+        </label>
+
+        <label class="checkbox_label modern-layout-checkbox">
+          <input v-model="store.settings.modernExtensionSettings" type="checkbox" class="checkbox" />
+          <span>启用现代扩展程序界面</span>
+        </label>
+
+        <component :is="updaterUi" v-if="updaterUi" :updater="updater" />
+
+        <div class="modern-layout-actions">
+          <button type="button" class="menu_button" title="重置现代化界面设置" @click="resetSettings">
+            <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+</template>
+
+<script setup lang="ts">
+import type { PluginUpdaterController } from '../../../公共模块/脚本更新器/contracts';
+import type { Component } from 'vue';
+import { INPUT_BOTTOM_GAP_MAX, INPUT_BOTTOM_GAP_MIN, SCRIPT_NAME, useModernLayoutStore } from '../store';
+
+defineProps<{
+  updater: PluginUpdaterController;
+  updaterUi?: Component;
+}>();
+
+const store = useModernLayoutStore();
+
+type NumericSettingKey = 'leftSidebarWidth' | 'overlayPanelWidth' | 'mainChatMaxWidth' | 'inputBottomGap';
+
+function commitNumericSetting(event: Event, key: NumericSettingKey, min: number, max = Number.POSITIVE_INFINITY) {
+  const input = event.currentTarget as HTMLInputElement;
+  const previousValue = store.settings[key];
+  const inputValue = input.valueAsNumber;
+
+  if (!Number.isFinite(inputValue)) {
+    input.value = String(previousValue);
+    return;
+  }
+
+  const nextValue = Math.min(max, Math.max(min, inputValue));
+  store.settings[key] = nextValue;
+  input.value = String(nextValue);
+}
+
+async function resetSettings() {
+  const confirmed = await SillyTavern.callGenericPopup(
+    '确定将现代化界面设置重置为默认值吗？',
+    SillyTavern.POPUP_TYPE.CONFIRM,
+  );
+  if (confirmed !== true && confirmed !== SillyTavern.POPUP_RESULT.AFFIRMATIVE) {
+    return;
+  }
+  store.resetSettings();
+  toastr.info('已重置现代化界面设置。', SCRIPT_NAME);
+}
+</script>
+
+<style scoped>
+.modern-layout-panel .inline-drawer-content {
+  padding: 0.5rem 0;
+}
+
+.modern-layout-checkbox {
+  justify-content: flex-start;
+  margin: 0.35rem 0;
+}
+
+.modern-layout-checkbox:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.modern-layout-field {
+  display: grid;
+  grid-template-columns: minmax(7em, 1fr) minmax(7em, 9em);
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.modern-layout-field .text_pole {
+  width: 100%;
+}
+
+.modern-layout-range-field {
+  grid-template-columns: minmax(7em, 1fr) minmax(12em, 2fr);
+}
+
+.modern-layout-range-control {
+  display: grid;
+  grid-template-columns: minmax(7em, 1fr) 5.5em;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modern-layout-range-control input[type='range'] {
+  width: 100%;
+  min-width: 0;
+}
+
+.modern-layout-hint {
+  display: block;
+  margin: -0.2rem 0 0.55rem;
+  opacity: 0.75;
+}
+
+.modern-layout-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+.modern-layout-actions .menu_button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+}
+</style>
